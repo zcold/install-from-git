@@ -1,0 +1,11 @@
+{
+    "default_package_name_pattern": "([a-zA-Z0-9_-]+)/[a-zA-Z0-9_]+\\.git",
+    "package_name_patterns":
+    {
+        "sublime-utilities-asic-fpga": "([a-zA-Z0-9_-]+)/[a-zA-Z0-9_]+\\.git"
+    },
+    "repositories":
+    [
+        "ssh://gitolite@openalm.lmera.ericsson.se/sublime-utilities-asic-fpga/suaf.git"
+    ],
+}

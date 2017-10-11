@@ -1,0 +1,36 @@
+[
+    {
+        "id": "preferences",
+        "children":
+        [
+            {
+                "caption": "Package Settings",
+                "mnemonic": "P",
+                "id": "package-settings",
+                "children":
+                [
+                    {
+                        "caption": "install-from-git",
+                        "children":
+                        [
+                            {
+                                "caption": "README",
+                                "command": "open_file",
+                                "args": {"file": "${packages}/install-from-git/README.md"}
+                            },
+                            {"caption": "-"},
+                            {
+                                "caption": "Settings",
+                                "command": "edit_settings", "args":
+                                {
+                                    "base_file": "${packages}/install-from-git/install-from-git.sublime-settings",
+                                    "default": ""
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]
