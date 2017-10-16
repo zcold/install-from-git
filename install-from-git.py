@@ -8,18 +8,37 @@ import sublime_plugin
 
 class GoodClass(object):
 
+    def _run(self, cmd):
+        self.debug_info(*cmd)
+        popen_arg_list = {
+            'shell': False,
+            'stdout': subprocess.PIPE,
+            'stderr': subprocess.PIPE,
+        }
+        self.proc = subprocess.Popen(cmd, **popen_arg_list)
+
     @property
     def underscore_name(self):
         s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', self.__class__.__name__)
         return re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
     @property
+    def is_set_visible(self):
+        return self.settings.get(self.underscore_name + '_is_visible', True)
+
+    def debug_info(self, *msg):
+        if self.settings.get('debug', True):
+            self.info(*msg)
+
+    def info(self, *msg):
+        print(self.underscore_name + ':', *msg)
+
+    def info_sep(self):
+        self.info('================================')
+
+    @property
     def settings(self):
-        return sublime.load_settings('install-from-git.sublime-settings')
-
-    def save_settings(self):
-        sublime.save_settings('install-from-git.sublime-settings')
-
+        return sublime.load_settings(__name__.split('.')[-1]+'.sublime-settings')
 
 class InstallFromGit(sublime_plugin.WindowCommand, GoodClass):
 
@@ -51,17 +70,17 @@ class InstallFromGit(sublime_plugin.WindowCommand, GoodClass):
                 shutil.rmtree(package_path)
                 os.mkdir(package_path)
                 os
-            print(os.path.exists(package_path))
-            print('install-from-git: installing package', package_name)
-            cmd = ['git', '--version']
-            self._run(cmd)
-            info, error = self.proc.communicate()
-            print(info, error)
+            self.info(package_path,  'exists?', os.path.exists(package_path))
+            self.info('installing package', package_name)
             cmd = ['git', 'clone', url, package_path]
             self._run(cmd)
             info, error = self.proc.communicate()
             if error:
-                sublime.error_message('install-from-git:\n\n'+error.decode('utf-8'))
+                self.info('error message:')
+                self.info_sep()
+                for line in error.decode('utf-8').split('\n'):
+                    self.info(line)
+                self.info_sep()
 
     def add_repository(self, **kwargs):
         self.window.show_input_panel(
@@ -83,7 +102,7 @@ class InstallFromGit(sublime_plugin.WindowCommand, GoodClass):
         repositories.append(repo_url)
         self.settings.set('repositories', list(set(repositories)))
         self.save_settings()
-        sublime.status_message('Repository %s successfully added' % repo_url)
+        sublime.status_message('Repository {0} successfully added'.format(repo_url))
 
     def on_change(self, input_str):
         pass
