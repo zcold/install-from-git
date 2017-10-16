@@ -1,4 +1,4 @@
 [
-    {"caption": "install-from-git: reinstall all packages", "command": "install_from_git", "args": {"cmd": "reinstall_all"}},
+    {"caption": "install-from-git: update all packages", "command": "install_from_git", "args": {"cmd": "reinstall_all"}},
     {"caption": "install-from-git: add repository", "command": "install_from_git", "args": {"cmd": "add_repository"}},
 ]
