@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 import shutil
+import time
 
 import sublime
 import sublime_plugin
@@ -16,6 +17,16 @@ class GoodClass(object):
             'stderr': subprocess.PIPE,
         }
         self.proc = subprocess.Popen(cmd, **popen_arg_list)
+        info, error = self.proc.communicate()
+        self.info('done')
+        sublime.status_message('install-from-git: Updating '+self.package_name+' done')
+        if error:
+            self.info('error message:')
+            self.info_sep()
+            for line in error.decode('utf-8').split('\n'):
+                self.info(line)
+            self.info_sep()
+        self.installed += 1
 
     @property
     def underscore_name(self):
@@ -45,42 +56,49 @@ class InstallFromGit(sublime_plugin.WindowCommand, GoodClass):
     def run(self, **kwargs):
         getattr(self, kwargs.get('cmd', 'no_cmd'), lambda: None)(**kwargs)
 
-    def _run(self, cmd):
-        popen_arg_list = {
-            'shell': False,
-            'stdout': subprocess.PIPE,
-            'stderr': subprocess.PIPE,
-        }
-        self.proc = subprocess.Popen(cmd, **popen_arg_list)
-
     def reinstall_all(self, **kwargs):
         settings = self.settings
-        repositories = settings.get('repositories', [])
+        self.repositories = settings.get('repositories', [])
+        self.interval = settings.get('interval', 0.5)
+        self.limit = settings.get('limit', 10)
         default_package_name_pattern = settings.get('default_package_name_pattern', r'([a-zA-Z0-9_-]+)/[a-zA-Z0-9_]+\.git')
         package_name_patterns = settings.get('package_name_patterns', {})
-        for url in repositories:
+        sublime.status_message('install-from-git: Updating all packages')
+        self.installed = 0
+        for url in self.repositories:
             package_name_pattern = default_package_name_pattern
             for k, v in package_name_patterns.items():
                 if k in url:
                     package_name_pattern = v
                     break
-            package_name = next(re.finditer(package_name_pattern, url)).group(1)
-            package_path = os.path.join(sublime.packages_path(), package_name)
+            try:
+                self.package_name = next(re.finditer(package_name_pattern, url)).group(1)
+            except StopIteration:
+                self.info_sep()
+                self.info('cannot parse package name from url.')
+                self.info(url)
+                self.info_sep()
+                self.installed += 1
+                continue
+            package_path = os.path.join(sublime.packages_path(), self.package_name)
             if os.path.exists(package_path):
                 shutil.rmtree(package_path)
                 os.mkdir(package_path)
-                os
             self.info(package_path,  'exists?', os.path.exists(package_path))
-            self.info('installing package', package_name)
+            self.info('installing package', self.package_name)
             cmd = ['git', 'clone', url, package_path]
-            self._run(cmd)
-            info, error = self.proc.communicate()
-            if error:
-                self.info('error message:')
-                self.info_sep()
-                for line in error.decode('utf-8').split('\n'):
-                    self.info(line)
-                self.info_sep()
+            sublime.status_message('install-from-git: Updating '+self.package_name)
+            sublime.set_timeout_async(lambda: self._run(cmd), 0)
+        sublime.set_timeout_async(lambda: self.all_done(), 0)
+
+    def all_done(self, interval=0.5, limit=10):
+        passed_time = 0
+        while passed_time < limit:
+            if self.installed == len(self.repositories):
+                sublime.status_message('install-from-git: All packages updated ({}) seconds.'.format(passed_time))
+                break
+            passed_time += interval
+            time.sleep(interval)
 
     def add_repository(self, **kwargs):
         self.window.show_input_panel(
@@ -107,5 +125,5 @@ class InstallFromGit(sublime_plugin.WindowCommand, GoodClass):
     def on_change(self, input_str):
         pass
 
-    def on_cancel(self, input_str):
+    def on_cancel(self):
         pass
